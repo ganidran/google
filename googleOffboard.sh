@@ -17,18 +17,21 @@ else
     mkdir "$HOME"/Offboarded
 fi
 
-# Require GAM ADV; exit with instructions if missing or legacy GAM only.
-if [ ! -d "$HOME/bin/gam" ] && [ ! -d "$HOME/bin/gamadv-xtd3" ]
+# Require GAM7; exit with instructions if missing or if only legacy GAM is installed.
+if [ -d "$HOME/bin/gam7" ]
 then
-    printf "GAM is not installed. Please install it by following our Wiki: <Insert Internal Documentation Link Here> \n\n"
-    exit 0
+    printf "GAM7 exists. Proceeding...\n\n"
 elif [ -d "$HOME/bin/gam" ]
 then
-    printf "Only GAM is installed. Please install 'GAM ADV' via: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here> \n\n"
-    exit 0
+    printf "Only GAM is installed. Please install 'GAM7' via: https://github.com/GAM-team/GAM/wiki/How-to-Upgrade-GAMADV-XTD3-to-GAM7 or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
 elif [ -d "$HOME/bin/gamadv-xtd3" ]
 then
-    printf "GAM ADV exists. Proceeding...\n\n"
+    printf "GAMADV-XTD3 is installed. Please install 'GAM7' via: https://github.com/GAM-team/GAM/wiki/How-to-Upgrade-GAMADV-XTD3-to-GAM7 or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
+else
+    printf "GAM is not installed. Please install it by following our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
 fi
 
 ###########################
@@ -71,12 +74,12 @@ sleep 1
 ###########################
 
 today=$(date +%Y-%m-%d)
-gamPath="$HOME/bin/gamadv-xtd3/gam"
+gam="$HOME/bin/gam7/gam"
 userPath=$HOME/Offboarded/$userEmail
 logFile="$userPath/logFile-$today.txt"
 mdmList="$userPath/mdmList-$today.csv"
 shrdDrvList="$userPath/$userEmail-shrdDrv.csv"
-managerEmail=$($gamPath info user $userEmail | awk '/type: manager/ {getline; print $2}')
+managerEmail=$($gam info user $userEmail | awk '/type: manager/ {getline; print $2}')
 itCal="<sharedGoogleCalendarId>"
 ninetyDays=$(date -d "+90 days" +%Y-%m-%d)
 
@@ -98,63 +101,63 @@ printf "\n\n--/--\n\n"
 offboard() {
 printf "\n\n--START--\n\n"
 echo "Resetting sign-in cookies and setting a random password"
-$gamPath user "$userEmail" signout
-$gamPath update user "$userEmail" password random
+$gam user "$userEmail" signout
+$gam update user "$userEmail" password random
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Turning 'Directory Sharing' off"
-$gamPath update user "$userEmail" gal off
+$gam update user "$userEmail" gal off
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Creating list of all shared drives"
-$gamPath user "$userEmail" print shareddrives fields id,name > "$shrdDrvList"
+$gam user "$userEmail" print shareddrives fields id,name > "$shrdDrvList"
 echo "Removing shared drive access"
-$gamPath csv "$shrdDrvList" gam delete drivefileacl ~id ~User
+$gam csv "$shrdDrvList" gam delete drivefileacl ~id ~User
 
 echo "Removing user from Google Groups"
-$gamPath user "$userEmail" delete groups
+$gam user "$userEmail" delete groups
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Removing connected apps, backup codes and/or tokens"
-$gamPath user "$userEmail" deprovision
+$gam user "$userEmail" deprovision
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Creating list of managed mobile device resourceIds"
-$gamPath config csv_output_header_filter "resourceId" redirect csv - > "$mdmList" print mobile query "email:$userEmail"
+$gam config csv_output_header_filter "resourceId" redirect csv - > "$mdmList" print mobile query "email:$userEmail"
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Removing Google account from managed mobile device(s)"
-$gamPath csv "$mdmList" gam update mobile ~resourceId action account_wipe
+$gam csv "$mdmList" gam update mobile ~resourceId action account_wipe
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Removing managed mobile device(s) from Google MDM"
-$gamPath csv "$mdmList" gam delete mobile ~resourceId
+$gam csv "$mdmList" gam delete mobile ~resourceId
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Delegating inbox to manager"
-$gamPath user "$userEmail" delegate to "$managerEmail"
+$gam user "$userEmail" delegate to "$managerEmail"
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 echo "Setting calendar reminder for admin"
-$gamPath user "$itCal" create event summary "Suspend & Archive $userEmail" start allday "$ninetyDays" end allday "$ninetyDays" reminder 1 email
+$gam user "$itCal" create event summary "Suspend & Archive $userEmail" start allday "$ninetyDays" end allday "$ninetyDays" reminder 1 email
 sleep 0.5
 printf "\n\n--/--\n\n"
 
 # Move user to Archived OU by type.
 if [[ "$userType" == "Contractor" || "$userType" == "contractor" ]]; then
   echo "Moving user to Archived Contractors OU"
-  $gamPath update user "$userEmail" ou "/Contractors/Archived Contractors"
+  $gam update user "$userEmail" ou "/Contractors/Archived Contractors"
 else
   echo "Moving user to Archived Employees OU"
-  $gamPath update user "$userEmail" ou "/Employees/Archived Employees"
+  $gam update user "$userEmail" ou "/Employees/Archived Employees"
 fi
 printf "\n\n--FIN--\n\n"
 }

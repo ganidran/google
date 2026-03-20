@@ -16,18 +16,21 @@ else
     mkdir "$HOME"/Offboarded
 fi
 
-# Require GAM ADV (not legacy GAM); exit with instructions if missing or wrong version.
-if [ ! -d "$HOME/bin/gam" ] && [ ! -d "$HOME/bin/gamadv-xtd3" ]
+# Require GAM7; exit with instructions if missing or if only legacy GAM is installed.
+if [ -d "$HOME/bin/gam7" ]
 then
-    printf "GAM is not installed. Please install it by following our Wiki: <Insert Internal Documentation Link Here> \n\n"
-    exit 0
+    printf "GAM7 exists. Proceeding...\n\n"
 elif [ -d "$HOME/bin/gam" ]
 then
-    printf "Only GAM is installed. Please install 'GAM ADV' via: https://github.com/taers232c/GAMADV-XTD3/wiki/How-to-Upgrade-from-Standard-GAM or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here> \n\n"
-    exit 0
+    printf "Only GAM is installed. Please install 'GAM7' via: https://github.com/GAM-team/GAM/wiki/How-to-Upgrade-GAMADV-XTD3-to-GAM7 or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
 elif [ -d "$HOME/bin/gamadv-xtd3" ]
 then
-    printf "GAM ADV exists. Proceeding...\n\n"
+    printf "GAMADV-XTD3 is installed. Please install 'GAM7' via: https://github.com/GAM-team/GAM/wiki/How-to-Upgrade-GAMADV-XTD3-to-GAM7 or reset your Cloud Shell then follow our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
+else
+    printf "GAM is not installed. Please install it by following our Wiki: <Insert Internal Documentation Link Here>\n\n"
+    exit 1
 fi
 
 ###########################
@@ -74,7 +77,7 @@ sleep 1
 # Offboarded user folder path (defined before logFile).
 userPath=$HOME/Offboarded/$userEmail
 today=$(date +%Y-%m-%d)
-gamPath="$HOME/bin/gamadv-xtd3/gam"
+gam="$HOME/bin/gam7/gam"
 logFile="$userPath/logFile-calEvents-$today.txt"
 calEventList="$userPath/calEvents-$today.csv"
 
@@ -96,32 +99,32 @@ printf "\n\n--/--\n\n"
 operation() {
 printf "\n\n--START--\n\n"
 echo "Unarchiving the user"
-$gamPath update user "$userEmail" archive off
+$gam update user "$userEmail" archive off
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Unsuspending the user"
-$gamPath update user "$userEmail" suspended off
+$gam update user "$userEmail" suspended off
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Grabbing all Calendar events"
-$gamPath calendar "$userEmail" print events after "$offDate" fields organizer.email,recurringEventId,summary,created,status > "$calEventList"
+$gam calendar "$userEmail" print events after "$offDate" fields organizer.email,recurringEventId,summary,created,status > "$calEventList"
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Removing user from normal events."
-$gamPath csv "$calEventList" gam calendar ~organizer.email update event id ~id removeattendee "$userEmail"
+$gam csv "$calEventList" gam calendar ~organizer.email update event id ~id removeattendee "$userEmail"
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Removing user from recurring events."
-$gamPath csv "$calEventList" gam calendar ~organizer.email update event id ~recurringEventId removeattendee "$userEmail"
+$gam csv "$calEventList" gam calendar ~organizer.email update event id ~recurringEventId removeattendee "$userEmail"
 sleep 1
 printf "\n\n--/--\n\n"
 
 echo "Removing remaining events from primary calendar view"
-$gamPath calendar "$userEmail" delete events after "$offDate" doit sendnotifications false
+$gam calendar "$userEmail" delete events after "$offDate" doit sendnotifications false
 printf "\n\n--/--\n\n"
 }
 
